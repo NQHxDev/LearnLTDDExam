@@ -342,7 +342,9 @@ namespace Server.Services
             user.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            return MapToUserDto(user);
+            var dto = MapToUserDto(user);
+            dto.Token = _jwtHelper.GenerateToken(user);
+            return dto;
         }
 
         private static UserDto MapToUserDto(User user)

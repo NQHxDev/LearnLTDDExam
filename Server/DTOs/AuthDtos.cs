@@ -57,6 +57,7 @@ namespace Server.DTOs
         public string? PhoneNumber { get; set; }
         public string Role { get; set; } = "User";
         public DateTime CreatedAt { get; set; }
+        public string? Token { get; set; }
     }
 
     public class UpdateUserRoleDto
