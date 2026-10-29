@@ -239,6 +239,8 @@ namespace Server.Services
 
         public async Task<AuthResponseDto> GoogleAuthAsync(GoogleAuthDto googleDto)
         {
+            await EnsureDefaultAccountsAsync();
+
             string? email = googleDto.Email;
             string? fullName = googleDto.FullName;
 

@@ -35,6 +35,16 @@ services:
     networks:
       - app_network
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: learnltddexam_cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:-eyJhIjoiOGMxMDU3OTIzNDg3MjNiZTU2OGUzMjJkMDFhMmRlNzkiLCJ0IjoiZDIxNjU5MmQtZjM4Ni00MThhLTgxZWEtNzAxMmJiYjJmY2I2IiwicyI6IlkyTmlaRFEwT1dVdE5qWTRNaTAwWVRrM0xXSTBZelF0T1daaE1tUmpOamc1WmpsbCJ9}
+    depends_on:
+      - server
+    networks:
+      - app_network
+
 volumes:
   sqlserver_data:
     name: learnltddexam_sqlserver_data
