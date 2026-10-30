@@ -12,6 +12,7 @@ namespace Server.Services
     {
         Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto);
         Task<AuthResponseDto> LoginAsync(LoginDto loginDto);
+        Task<AuthResponseDto> BiometricLoginAsync(BiometricLoginDto biometricDto);
         Task<AuthResponseDto> GoogleAuthAsync(GoogleAuthDto googleDto);
         Task<bool> SendLoginOtpAsync(LoginDto loginDto);
         Task<bool> SendOtpAsync(string email);
@@ -19,6 +20,7 @@ namespace Server.Services
         Task<UserDto?> GetUserByIdAsync(int userId);
         Task<List<UserDto>> GetAllUsersAsync();
         Task<UserDto> UpdateUserRoleAsync(int userId, string role);
+        Task<UserDto> UpdateProfileAsync(int userId, UpdateProfileDto dto);
     }
 
     public class AuthService : IAuthService
@@ -237,6 +239,46 @@ namespace Server.Services
             };
         }
 
+        public async Task<AuthResponseDto> BiometricLoginAsync(BiometricLoginDto biometricDto)
+        {
+            await EnsureDefaultAccountsAsync();
+
+            var normalizedEmail = biometricDto.Email.Trim().ToLower();
+            if (string.IsNullOrWhiteSpace(normalizedEmail) || !normalizedEmail.Contains('@'))
+            {
+                throw new UnauthorizedAccessException("Vui lòng cung cấp địa chỉ Email hợp lệ");
+            }
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
+
+            if (user == null)
+            {
+                throw new UnauthorizedAccessException("Tài khoản không tồn tại trên hệ thống");
+            }
+
+            if (!user.IsActive)
+            {
+                throw new UnauthorizedAccessException("Tài khoản đã bị vô hiệu hóa");
+            }
+
+            // Đảm bảo Role hợp lệ trong 3 Role (User, Staff, Admin), mặc định là User
+            if (!Enum.IsDefined(typeof(UserRole), user.Role))
+            {
+                user.Role = UserRole.User;
+                await _context.SaveChangesAsync();
+            }
+
+            var token = _jwtHelper.GenerateToken(user);
+
+            return new AuthResponseDto
+            {
+                Token = token,
+                User = MapToUserDto(user),
+                IsNewUser = false
+            };
+        }
+
         public async Task<AuthResponseDto> GoogleAuthAsync(GoogleAuthDto googleDto)
         {
             await EnsureDefaultAccountsAsync();
@@ -445,6 +487,41 @@ namespace Server.Services
             var dto = MapToUserDto(user);
             dto.Token = _jwtHelper.GenerateToken(user);
             return dto;
+        }
+
+        public async Task<UserDto> UpdateProfileAsync(int userId, UpdateProfileDto dto)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                throw new KeyNotFoundException("Người dùng không tồn tại");
+            }
+
+            // Nếu người dùng yêu cầu đổi mật khẩu mới
+            if (!string.IsNullOrWhiteSpace(dto.NewPassword))
+            {
+                if (string.IsNullOrWhiteSpace(dto.CurrentPassword))
+                {
+                    throw new InvalidOperationException("Vui lòng nhập mật khẩu hiện tại để xác nhận đổi mật khẩu mới");
+                }
+
+                if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
+                {
+                    throw new UnauthorizedAccessException("Mật khẩu hiện tại không chính xác");
+                }
+
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            }
+
+            user.FullName = dto.FullName.Trim();
+            user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            var result = MapToUserDto(user);
+            result.Token = _jwtHelper.GenerateToken(user);
+            return result;
         }
 
         private static UserDto MapToUserDto(User user)

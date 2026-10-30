@@ -66,6 +66,20 @@ namespace Server.DTOs
         public string Role { get; set; } = "User";
     }
 
+    public class UpdateProfileDto
+    {
+        [Required(ErrorMessage = "Họ và tên là bắt buộc")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Họ và tên phải từ 2 đến 100 ký tự")]
+        public string FullName { get; set; } = string.Empty;
+
+        public string? PhoneNumber { get; set; }
+
+        public string? CurrentPassword { get; set; }
+
+        [MinLength(6, ErrorMessage = "Mật khẩu mới tối thiểu 6 ký tự")]
+        public string? NewPassword { get; set; }
+    }
+
     public class GoogleAuthDto
     {
         public string? IdToken { get; set; }
@@ -77,6 +91,15 @@ namespace Server.DTOs
         public string? FullName { get; set; }
         public string? GoogleId { get; set; }
         public string? PhotoUrl { get; set; }
+    }
+
+    public class BiometricLoginDto
+    {
+        [Required(ErrorMessage = "Email là bắt buộc")]
+        [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
+        public string Email { get; set; } = string.Empty;
+
+        public string? BiometricToken { get; set; }
     }
 
     public class AuthResponseDto

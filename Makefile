@@ -4,11 +4,13 @@ MOBILE_DIR = NguyenQuangHung
 DOCKER_COMPOSE_FILE = $(SERVER_DIR)/docker-compose.yml
 DOCKER_COMPOSE = docker compose -f $(DOCKER_COMPOSE_FILE)
 DOCKER_IMAGE_NAME = learnltddexam-server:latest
+SERVER_PORT = 5057
+DB_PORT = 1433
 
 .PHONY: all setup clean \
         up up-db down restart logs ps docker-build docker-clean \
         server server-dev server-build server-clean db-migrate \
-        mobile mobile-devices mobile-pub-get mobile-clean mobile-apk
+        mobile mobile-reverse mobile-devices mobile-pub-get mobile-clean mobile-apk
 
 # Docker Commands
 docker-build:
@@ -65,9 +67,14 @@ db-migrate:
 	dotnet ef database update --project $(SERVER_DIR)
 
 # Mobile Commands
-mobile:
-	@echo "Đang chạy ứng dụng Mobile Flutter..."
-	cd $(MOBILE_DIR) && flutter run
+mobile-reverse:
+	@echo "Đang thiết lập reverse port cho thiết bị Android (ADB)..."
+	-@adb reverse tcp:$(SERVER_PORT) tcp:$(SERVER_PORT) > /dev/null 2>&1 && echo "  ✔ Port $(SERVER_PORT) (Server API) -> OK" || echo "  ⚠ Bỏ qua reverse port (không có thiết bị Android kết nối qua ADB)"
+	-@adb reverse tcp:$(DB_PORT) tcp:$(DB_PORT) > /dev/null 2>&1 && echo "  ✔ Port $(DB_PORT) (SQL Server) -> OK" || true
+
+mobile: mobile-reverse
+	@echo "Đang chạy ứng dụng Mobile Flutter (Đọc cấu hình từ .env)..."
+	cd $(MOBILE_DIR) && flutter run --dart-define-from-file=.env
 
 mobile-devices:
 	@echo "Kiểm tra danh sách thiết bị/máy ảo kết nối..."
@@ -82,8 +89,8 @@ mobile-clean:
 	cd $(MOBILE_DIR) && flutter clean
 
 mobile-apk:
-	@echo "Đang build APK release..."
-	cd $(MOBILE_DIR) && flutter build apk
+	@echo "Đang build APK release (Đọc cấu hình từ .env)..."
+	cd $(MOBILE_DIR) && flutter build apk --dart-define-from-file=.env
 
 # General Commands
 setup:

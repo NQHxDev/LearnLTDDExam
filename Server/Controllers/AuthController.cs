@@ -58,6 +58,25 @@ namespace Server.Controllers
         }
 
         /// <summary>
+        /// Đăng nhập nhanh bằng vân tay / sinh trắc học (bỏ qua OTP và mật khẩu)
+        /// </summary>
+        [HttpPost("biometric-login")]
+        [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> BiometricLogin([FromBody] BiometricLoginDto biometricDto)
+        {
+            try
+            {
+                var result = await _authService.BiometricLoginAsync(biometricDto);
+                return Ok(ApiResponse<AuthResponseDto>.SuccessResponse(result, "Đăng nhập bằng vân tay thành công"));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ApiResponse<object>.ErrorResponse(ex.Message));
+            }
+        }
+
+        /// <summary>
         /// Đăng nhập hoặc Đăng ký tài khoản bằng Google
         /// </summary>
         [HttpPost("google")]
@@ -205,6 +224,46 @@ namespace Server.Controllers
             catch (KeyNotFoundException ex)
             {
                 return NotFound(ApiResponse<object>.ErrorResponse(ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Sửa đổi thông tin hồ sơ cá nhân và mật khẩu của người dùng hiện tại
+        /// </summary>
+        [HttpPut("profile")]
+        [Authorize]
+        [ProducesResponseType(typeof(ApiResponse<UserDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
+        {
+            var userId = _jwtHelper.GetUserIdFromToken(User);
+            if (userId == null)
+            {
+                return Unauthorized(ApiResponse<object>.ErrorResponse("Token không hợp lệ hoặc đã hết hạn"));
+            }
+
+            try
+            {
+                var updatedUser = await _authService.UpdateProfileAsync(userId.Value, dto);
+                return Ok(ApiResponse<UserDto>.SuccessResponse(updatedUser, "Cập nhật hồ sơ cá nhân thành công"));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.ErrorResponse(ex.Message));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ApiResponse<object>.ErrorResponse(ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.ErrorResponse(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.ErrorResponse(ex.Message));
             }
         }
     }

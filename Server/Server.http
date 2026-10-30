@@ -1,6 +1,29 @@
 @Server_HostAddress = http://localhost:5057
 
-GET {{Server_HostAddress}}/weatherforecast/
+### Health Check
+GET {{Server_HostAddress}}/health
 Accept: application/json
 
-###
+### Cập nhật hồ sơ cá nhân (Yêu cầu Bearer Token)
+PUT {{Server_HostAddress}}/api/Auth/profile
+Content-Type: application/json
+Authorization: Bearer <TOKEN_O_DAY>
+
+{
+  "fullName": "Nguyễn Quang Hưng (Updated)",
+  "phoneNumber": "0987654321",
+  "currentPassword": "",
+  "newPassword": ""
+}
+
+### Đổi mật khẩu cá nhân
+PUT {{Server_HostAddress}}/api/Auth/profile
+Content-Type: application/json
+Authorization: Bearer <TOKEN_O_DAY>
+
+{
+  "fullName": "Nguyễn Quang Hưng",
+  "phoneNumber": "0987654321",
+  "currentPassword": "Anhhung1@",
+  "newPassword": "NewPassword123@"
+}
